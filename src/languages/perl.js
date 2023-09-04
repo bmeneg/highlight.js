@@ -26,6 +26,7 @@ export default function(hljs) {
     'chown',
     'chr',
     'chroot',
+    'class',
     'close',
     'closedir',
     'connect',
@@ -55,6 +56,7 @@ export default function(hljs) {
     'exit',
     'exp',
     'fcntl',
+    'field',
     'fileno',
     'flock',
     'for',
@@ -114,6 +116,7 @@ export default function(hljs) {
     'lt',
     'ma',
     'map',
+    'method',
     'mkdir',
     'msgctl',
     'msgget',
@@ -258,19 +261,41 @@ export default function(hljs) {
     end: /\}/
     // contains defined later
   };
-  const VAR = { variants: [
-    { begin: /\$\d/ },
-    { begin: regex.concat(
-      /[$%@](\^\w\b|#\w+(::\w+)*|\{\w+\}|\w+(::\w*)*)/,
-      // negative look-ahead tries to avoid matching patterns that are not
-      // Perl at all like $ident$, @ident@, etc.
-      `(?![A-Za-z])(?![@$%])`
-    ) },
-    {
-      begin: /[$%@][^\s\w{]/,
-      relevance: 0
-    }
-  ] };
+  const ATTRS = {
+    className: 'attribute',
+    begin: /\s+:\s*\w+/,
+    end: /(\\s*\\(.*?\\))?/,
+  };
+  const VAR = {
+    variants: [
+      { begin: /\$\d/ },
+      { begin: regex.concat(
+        /[$%@](\^\w\b|#\w+(::\w+)*|\{\w+\}|\w+(::\w*)*)/,
+        // negative look-ahead tries to avoid matching patterns that are not
+        // Perl at all like $ident$, @ident@, etc.
+        `(?![A-Za-z])(?![@$%])`
+        )
+      },
+      {
+        begin: /[$%@][^\s\w{]/,
+        relevance: 0
+      }
+    ],
+    contains: [ ATTRS ],
+  };
+  const NUMBER = {
+    className: 'number',
+    variants: [
+      { begin: '\\b[1-9][0-9_]*\\b' },
+      // consider the special case of version number
+      { begin: '\\bv?[1-9][0-9_]*\\.[0-9_]+\\b' },
+      { begin: '\\.\\b[0-9_]+\\b' },
+      { begin: '\\b0[0-7_]+\\b' },
+      { begin: '\\b0x[0-9a-fA-F_]+\\b' },
+      { begin: '\\b0b[0-1]+\\b' },
+    ],
+    relevance: 0
+  }
   const STRING_CONTAINS = [
     hljs.BACKSLASH_ESCAPE,
     SUBST,
@@ -385,11 +410,7 @@ export default function(hljs) {
         }
       ]
     },
-    {
-      className: 'number',
-      begin: '(\\b0[0-7_]+)|(\\b0x[0-9a-fA-F_]+)|(\\b[1-9][0-9_]*(\\.[0-9_]+)?)|[0_]\\b',
-      relevance: 0
-    },
+    NUMBER,
     { // regexp container
       begin: '(\\/\\/|' + hljs.RE_STARTERS_RE + '|\\b(split|return|print|reverse|grep)\\b)\\s*',
       keywords: 'split return print reverse grep',
@@ -431,11 +452,19 @@ export default function(hljs) {
     },
     {
       className: 'function',
-      beginKeywords: 'sub',
+      beginKeywords: 'sub method',
       end: '(\\s*\\(.*?\\))?[;{]',
       excludeEnd: true,
       relevance: 5,
-      contains: [ hljs.TITLE_MODE ]
+      contains: [ hljs.TITLE_MODE, ATTRS ]
+    },
+    {
+      className: 'class',
+      beginKeywords: 'class',
+      end: '[;{]',
+      excludeEnd: true,
+      relevance: 5,
+      contains: [ hljs.TITLE_MODE, ATTRS, NUMBER ]
     },
     {
       begin: '-\\w\\b',
